@@ -31,11 +31,37 @@
 
 ## Abstract
 
-ToDo
+Sometimes you want to write Position Independent Code (PIC) in plain C (well, at least I do). Relocatable helps you do so. It allows you to write C-code that will be directly compiled into raw shellcode, which can be loaded into any process without the need for tools such as Donut or sRDI. An advantage is that the output size of the shellcode is extremely small (almost no overhead), and the shellcode remains simple.
 
 ## Getting started
 
-ToDo
+Clone this repository first. Install the dependencies, then [review the code](https://github.com/tijme/relocatable/blob/master/.github/laughing.gif).
+
+**Dependencies**
+
+* [MinGW](https://formulae.brew.sh/formula/mingw-w64)
+
+**Modify the code**
+
+Adjust the code in `./src/main.c` to your needs. The included example code pops a message box.
+
+**Compiling**
+
+    make
+
+**Usage**
+
+Load `./dst/relocatable.x64.bin` using your shellcode loader (technique) of choice. You can also convert it to a c-code array using `xxd`.
+
+    xxd -i dst/relocatable.x64.bin
+
+This outputs about a 1000 bytes. An example is included below.
+
+    unsigned char dst_relocatable_x64_bin[] = {
+      0x55, 0x48, 0x89, 0xe5, 0xe8, 0x55, 0x03, 0x00, 0x00, 0x90, 0x5d, 0xc3,
+      0x55, 0x48, 0x89, 0xe5, 0x48, 0x83, 0xec, 0x10, 0xc7, 0x45, 0xfc, 0x60,
+      0x00, 0x00, 0x00, 0x8b, 0x45, 0xfc, 0x65, 0x48, 0x8b, 0x00, 0x48, 0x8
+      -- snip --
 
 ## Issues & requests
 

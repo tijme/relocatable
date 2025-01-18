@@ -29,4 +29,4 @@ jobs:
           name: Release ${{ env.SHORT_SHA }}
           tag_name: tag-${{ env.SHORT_SHA }}
           files: |
-            ./dst/*.exe
+            ./dst/*.bin
