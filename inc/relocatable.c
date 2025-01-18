@@ -77,6 +77,11 @@ LDR_DATA_TABLE_ENTRY *PIC_GetDataTableEntry(const LIST_ENTRY *ptr) {
  * Retrieve the address of a function from a module in memory by matching
  * both the module name and the function name.
  * 
+ * This function and its dependencies are inspired on ShellcodeStdio 
+ * from @jackullrich. This project needs to adhere to his license, which
+ * is still a TODO. Will be done in the upcoming version.
+ * https://github.com/jackullrich/ShellcodeStdio/tree/master
+ * 
  * @param moduleName The name of the module to search for.
  * @param functionName The name of the function to search for.
  * @return void* The address of the function if found, NULL otherwise.
