@@ -1,0 +1,32 @@
+name: Compile using `make`, then publish
+
+permissions:
+  contents: write
+
+on:
+  push:
+    branches: ["master"]
+  pull_request:
+    branches: ["master"]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Set up MinGW
+        uses: egor-tensin/setup-mingw@v2
+        with:
+          platform: x64
+      - name: Compile
+        run: make
+      - name: Get short SHA
+        run: echo "SHORT_SHA=`echo ${GITHUB_SHA} | cut -c1-8`" >> $GITHUB_ENV
+      - name: Release 
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Release ${{ env.SHORT_SHA }}
+          tag_name: tag-${{ env.SHORT_SHA }}
+          files: |
+            ./dst/*.exe
