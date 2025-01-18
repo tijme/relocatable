@@ -69,4 +69,4 @@ Issues or new feature requests can be reported via the [issue tracker](https://g
 
 ## License & copyright
 
-Copyright (c) 2025 Tijme Gommers. Relocatable is released under the Mozilla Public License Version 2.0. View [LICENSE.md](https://github.com/tijme/relocatable/blob/master/LICENSE.md) for the full license.
+Copyright (c) 2025 Tijme Gommers. Relocatable is released under the GNU General Public License, version 2.0. View [LICENSE.md](https://github.com/tijme/relocatable/blob/master/LICENSE.md) for the full license. Relocatable was inspired by [ShellcodeStdio](https://github.com/jackullrich/ShellcodeStdio/tree/master), which is also licenced under the [GNU General Public License, version 2.0](https://github.com/zyantific/zydis/blob/master/LICENSE).

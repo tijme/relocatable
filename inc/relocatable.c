@@ -1,10 +1,10 @@
 /**
- * Mozilla Public License (MPL) Version 2.0.
- * 
+ * GNU General Public License, version 2.0.
+ *
  * Copyright (c) 2025 Tijme Gommers (@tijme).
- * 
+ *
  * This source code file is part of Relocatable. Relocatable is 
- * licensed under Mozilla Public License (MPL) Version 2.0, and 
+ * licensed under # GNU General Public License, version 2.0, and 
  * you are free to use, modify, and distribute this file under 
  * its terms. However, any modified versions of this file must 
  * include this same license and copyright notice.
@@ -78,9 +78,7 @@ LDR_DATA_TABLE_ENTRY *PIC_GetDataTableEntry(const LIST_ENTRY *ptr) {
  * both the module name and the function name.
  * 
  * This function and its dependencies are inspired on ShellcodeStdio 
- * from @jackullrich. This project needs to adhere to his license, which
- * is still a TODO. Will be done in the upcoming version.
- * https://github.com/jackullrich/ShellcodeStdio/tree/master
+ * from @jackullrich: https://github.com/jackullrich/ShellcodeStdio/tree/master
  * 
  * @param moduleName The name of the module to search for.
  * @param functionName The name of the function to search for.
@@ -146,6 +144,13 @@ void* PIC_PreliminaryGetProcAddress(char moduleName[], char functionName[]) {
     return NULL;
 }
 
+
+/**
+ * Initialize Relocatable by resolving the two main Windows APIs it depends on.
+ * 
+ * @param PIC_LoadLibraryA* LoadLibraryA Addres of `LoadLibraryA` is written to this variable.
+ * @param PIC_GetProcAddress* GetProcAddress Addres of `GetProcAddress` is written to this variable.
+ */
 void InitRelocatable(PIC_LoadLibraryA* LoadLibraryA, PIC_GetProcAddress* GetProcAddress) {
     // Resolve LoadLibraryA and GetProcAddress (assuming `Kernel32.dll` is loaded)
     char StringKernel32Dll[] = {'K', 'E', 'R', 'N', 'E', 'L', '3', '2', '.', 'd', 'l', 'l', 0x0 };
