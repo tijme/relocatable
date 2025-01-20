@@ -10,83 +10,90 @@
  * include this same license and copyright notice.
  */
 
-#include "../inc/relocatable.c"
+/**
+ * Windows API.
+ * 
+ * Contains declarations for all of the functions, macro's & data types in the Windows API.
+ * https://docs.microsoft.com/en-us/previous-versions//aa383749(v=vs.85)?redirectedfrom=MSDN
+ */
+#include <windows.h>
 
-#define DEFINE_STRING(name, value) char name[] = value "\0";
-
-// Structure to hold function pointers and modules
-typedef struct {
-    HMODULE hUser32;
+/**
+ * A struct of module definitions you would like to use.
+ */
+struct ModuleTable {
+    // Custom (add any module of your preference here)
     HMODULE hKernel32;
+    HMODULE hUser32;
+};
+
+/**
+ * A struct of function definitions you would like to use.
+ */
+struct FunctionTable {
+    // Must always be present (these are initialized by Relocatable)
+    HMODULE (*LoadLibraryA)(LPCSTR lpLibFileName);
+    FARPROC (*GetProcAddress)(HMODULE hModule, LPCSTR lpProcName);
+
+    // Custom (add any function of your preference here)
     void (*MessageBoxA)(HWND, LPCSTR, LPCSTR, UINT);
     void (*WinExec)(LPCSTR, UINT);
-} FunctionTable;
+};
 
-// Initialize the FunctionTable
-int InitFunctionTable(FunctionTable* table) {
-    if (!table) return -1;
+/**
+ * Include Relocatable helper functions.
+ * 
+ * This include must be used before any of your own code, as this file
+ * contains the first instructions of the shellcode that will ensure that 
+ * the `__main` function is called correctly upon running the shellcode.
+ */
+#include "../inc/relocatable.c"
 
-    PIC_LoadLibraryA LoadLibraryA;
-    PIC_GetProcAddress GetProcAddress;
-    InitRelocatable(&LoadLibraryA, &GetProcAddress);
+/**
+ * Populate the context tables with modules & functions you would like to use.
+ * 
+ * @param struct Relocatable* context A 'global' variable capturing Relocatable's entire context (loaded modules & functions)
+ */
+void PopulateTables(struct Relocatable* context) {
+    // Define modules
+    DEFINE_STRING(Kernel32ModuleName, "KERNEL32.dll");
+    DEFINE_STRING(User32ModuleName, "USER32.dll");
 
-    // Define required strings
-    DEFINE_STRING(StringUser32Dll, "User32.dll");
-    DEFINE_STRING(StringKernel32Dll, "Kernel32.dll");
-    DEFINE_STRING(StringMessageBoxA, "MessageBoxA");
-    DEFINE_STRING(StringWinExec, "WinExec");
+    // Load modules
+    context->modules.hKernel32 = context->functions.LoadLibraryA(Kernel32ModuleName);
+    context->modules.hUser32 = context->functions.LoadLibraryA(User32ModuleName);
 
-    // Load User32.dll
-    table->hUser32 = LoadLibraryA(StringUser32Dll);
-    if (!table->hUser32) return -1;
+    // Define functions
+    DEFINE_STRING(WinExecFunctionName, "WinExec");
+    DEFINE_STRING(MessageBoxAFunctionName, "MessageBoxA");
 
-    // Load Kernel32.dll
-    table->hKernel32 = LoadLibraryA(StringKernel32Dll);
-    if (!table->hKernel32) return -1;
-
-    // Load MessageBoxA
-    table->MessageBoxA = (void (*)(HWND, LPCSTR, LPCSTR, UINT))
-        GetProcAddress(table->hUser32, StringMessageBoxA);
-    if (!table->MessageBoxA) return -1;
-
-    // Load WinExec
-    table->WinExec = (void (*)(LPCSTR, UINT))
-        GetProcAddress(table->hKernel32, StringWinExec);
-    if (!table->WinExec) return -1;
-
-    return 0;
+    // Load functions
+    context->functions.WinExec = (void (*)(LPCSTR, UINT)) context->functions.GetProcAddress(context->modules.hKernel32, WinExecFunctionName);
+    context->functions.MessageBoxA = (void (*)(HWND, LPCSTR, LPCSTR, UINT)) context->functions.GetProcAddress(context->modules.hUser32, MessageBoxAFunctionName);
 }
 
-
-void __main ();
-void other_function(FunctionTable* table);
-
+/**
+ * The main function of your shellcode.
+ * 
+ * Using `InitializeRelocatable`, two Windows API functions are at your disposal.
+ * Using these two functions, you can further utilize the Windows API.
+ * - HMODULE context.functions.LoadLibraryA([in] LPCSTR lpLibFileName);
+ * - FARPROC context.functions.GetProcAddress([in] HMODULE hModule, [in] LPCSTR lpProcName);
+ */
 void __main () {
-    // Define strings
-    DEFINE_STRING(StringMessageBoxTitle, "Test Title");
-    DEFINE_STRING(StringMessageBoxBody, "Test Body");
+    struct Relocatable context;
+    InitializeRelocatable(&context);
 
-    // Initialize function table
-    FunctionTable table;
-    if (InitFunctionTable(&table) != 0) {
-        // Initialization failed
-        return;
-    }
+    // Populate module & function tables with your own dependencies
+    PopulateTables(&context);
 
-    // Call MessageBoxA
-    if (table.MessageBoxA) {
-        table.MessageBoxA(NULL, StringMessageBoxBody, StringMessageBoxTitle, MB_OK);
-    }
+    // Example to pop a message box
+    DEFINE_STRING(MessageBoxTitle, "Test Title");
+    DEFINE_STRING(MessageBoxBody, "Test Body");
+    context.functions.MessageBoxA(NULL, MessageBoxBody, MessageBoxTitle, MB_OK);
 
-    // Call other_function
-    other_function(&table);
+    // Example to pop a calculator
+    DEFINE_STRING(CalculatorBinary, "calc.exe");
+    context.functions.WinExec(CalculatorBinary, SW_SHOW);
 }
 
-void other_function(FunctionTable* table) {
-    DEFINE_STRING(StringCalc, "calc.exe");
-
-    // Call WinExec
-    if (table->WinExec) {
-        table->WinExec(StringCalc, SW_SHOW);
-    }
-}
