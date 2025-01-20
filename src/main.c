@@ -19,6 +19,8 @@
  */
 #include "../inc/relocatable.c"
 
+#define DEFINE_STRING(name, value) char name[] = value "\0";
+
 /**
  * The main function of your shellcode.
  * 
@@ -30,22 +32,48 @@
  * Remember to define variables on the stack in Position Independent Code,
  * thus you need to specify `char* a = 'A'` as `char a[] = { 'A', 0x0 }`.
  */
+void __main ();
+void other_function();
+
 void __main () {
+    // Define strings
+    DEFINE_STRING(StringUser32Dll, "User32.dll");
+    DEFINE_STRING(StringMessageBoxA, "MessageBoxA");
+    DEFINE_STRING(StringMessageBoxTitle, "Test Title");
+    DEFINE_STRING(StringMessageBoxBody, "Test Body");
+
+
     // Initialize Relocatable
     PIC_LoadLibraryA LoadLibraryA;
     PIC_GetProcAddress GetProcAddress;
     InitRelocatable(&LoadLibraryA, &GetProcAddress);
 
-    // Load `User32.dll`
-    char StringUser32Dll[] = {'U', 's', 'e', 'r', '3', '2', '.', 'd', 'l', 'l', 0x0 };
+    // Load `User32.dll`   
     HMODULE User32 = LoadLibraryA(StringUser32Dll);
 
-    // Get `MessageBoxA` address
-    char StringMessageBoxA[] = {'M', 'e', 's', 's', 'a', 'g', 'e', 'B', 'o', 'x', 'A', 0x0 };
     void (*MessageBoxA)() = (void (*)) GetProcAddress(User32, StringMessageBoxA);
 
     // Pop message box
-    char StringMessageBoxTitle[] = {'T', 'e', 's', 't', ' ', 'T', 'i', 't', 'l', 'e', 0x0 };
-    char StringMessageBoxBody[] = {'T', 'e', 's', 't', ' ', 'B', 'o', 'd', 'y', 0x0 };
     MessageBoxA(NULL, StringMessageBoxTitle, StringMessageBoxBody, MB_OK);
+
+    other_function();
+}
+
+void other_function(){
+    DEFINE_STRING(StringKernel32Dll, "Kernel32.dll");
+    DEFINE_STRING(StringWinExec, "WinExec");
+    DEFINE_STRING(StringCalc, "calc.exe");
+
+    // Initialize Relocatable
+    PIC_LoadLibraryA LoadLibraryA;
+    PIC_GetProcAddress GetProcAddress;
+    InitRelocatable(&LoadLibraryA, &GetProcAddress);
+
+    // Load `Kernel32.dll`
+    HMODULE Kernel32 = LoadLibraryA(StringKernel32Dll);
+
+    void (*WinExec)() = (void (*)) GetProcAddress(Kernel32, StringWinExec);
+
+    // Execute calc.exe
+    WinExec(StringCalc, 0);
 }
