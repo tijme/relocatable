@@ -33,6 +33,7 @@
  * thus you need to specify `char* a = 'A'` as `char a[] = { 'A', 0x0 }`.
  */
 void __main ();
+void* LoadFunction(const char* libraryName, const char* functionName);
 void other_function();
 
 void __main () {
@@ -43,20 +44,27 @@ void __main () {
     DEFINE_STRING(StringMessageBoxBody, "Test Body");
 
 
-    // Initialize Relocatable
+    void (*MessageBoxA)(HWND, LPCSTR, LPCSTR, UINT) = (void (*)(HWND, LPCSTR, LPCSTR, UINT))
+        LoadFunction(StringUser32Dll, StringMessageBoxA);
+
+    if (MessageBoxA) {
+        MessageBoxA(NULL, StringMessageBoxBody, StringMessageBoxTitle, MB_OK);
+    }
+
+    other_function();
+}
+
+void* LoadFunction(const char* libraryName, const char* functionName) {
     PIC_LoadLibraryA LoadLibraryA;
     PIC_GetProcAddress GetProcAddress;
     InitRelocatable(&LoadLibraryA, &GetProcAddress);
 
-    // Load `User32.dll`   
-    HMODULE User32 = LoadLibraryA(StringUser32Dll);
+    HMODULE library = LoadLibraryA(libraryName);
+    if (!library) {
+        return NULL;
+    }
 
-    void (*MessageBoxA)() = (void (*)) GetProcAddress(User32, StringMessageBoxA);
-
-    // Pop message box
-    MessageBoxA(NULL, StringMessageBoxTitle, StringMessageBoxBody, MB_OK);
-
-    other_function();
+    return (void*)GetProcAddress(library, functionName);
 }
 
 void other_function(){
@@ -64,16 +72,10 @@ void other_function(){
     DEFINE_STRING(StringWinExec, "WinExec");
     DEFINE_STRING(StringCalc, "calc.exe");
 
-    // Initialize Relocatable
-    PIC_LoadLibraryA LoadLibraryA;
-    PIC_GetProcAddress GetProcAddress;
-    InitRelocatable(&LoadLibraryA, &GetProcAddress);
+    void (*WinExec)(LPCSTR, UINT) = (void (*)(LPCSTR, UINT))
+        LoadFunction(StringKernel32Dll, StringWinExec);
 
-    // Load `Kernel32.dll`
-    HMODULE Kernel32 = LoadLibraryA(StringKernel32Dll);
-
-    void (*WinExec)() = (void (*)) GetProcAddress(Kernel32, StringWinExec);
-
-    // Execute calc.exe
-    WinExec(StringCalc, 0);
+    if (WinExec) {
+        WinExec(StringCalc, SW_SHOW);
+    }
 }
