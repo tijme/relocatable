@@ -10,42 +10,83 @@
  * include this same license and copyright notice.
  */
 
-/**
- * Include Relocatable helper functions.
- * 
- * This must be the first statement/code/include in this file, as this file
- * contains the first instructions of the shellcode that will ensure that 
- * the `__main` function is called correctly upon running the shellcode.
- */
 #include "../inc/relocatable.c"
 
-/**
- * The main function of your shellcode.
- * 
- * Using `InitRelocatable`, two Windows API functions are at your disposal.
- * Using these two functions, you can further utilize the Windows API.
- * - HMODULE LoadLibraryA([in] LPCSTR lpLibFileName);
- * - FARPROC GetProcAddress([in] HMODULE hModule, [in] LPCSTR lpProcName);
- * 
- * Remember to define variables on the stack in Position Independent Code,
- * thus you need to specify `char* a = 'A'` as `char a[] = { 'A', 0x0 }`.
- */
-void __main () {
-    // Initialize Relocatable
+#define DEFINE_STRING(name, value) char name[] = value "\0";
+
+// Structure to hold function pointers and modules
+typedef struct {
+    HMODULE hUser32;
+    HMODULE hKernel32;
+    void (*MessageBoxA)(HWND, LPCSTR, LPCSTR, UINT);
+    void (*WinExec)(LPCSTR, UINT);
+} FunctionTable;
+
+// Initialize the FunctionTable
+int InitFunctionTable(FunctionTable* table) {
+    if (!table) return -1;
+
     PIC_LoadLibraryA LoadLibraryA;
     PIC_GetProcAddress GetProcAddress;
     InitRelocatable(&LoadLibraryA, &GetProcAddress);
 
-    // Load `User32.dll`
-    char StringUser32Dll[] = {'U', 's', 'e', 'r', '3', '2', '.', 'd', 'l', 'l', 0x0 };
-    HMODULE User32 = LoadLibraryA(StringUser32Dll);
+    // Define required strings
+    DEFINE_STRING(StringUser32Dll, "User32.dll");
+    DEFINE_STRING(StringKernel32Dll, "Kernel32.dll");
+    DEFINE_STRING(StringMessageBoxA, "MessageBoxA");
+    DEFINE_STRING(StringWinExec, "WinExec");
 
-    // Get `MessageBoxA` address
-    char StringMessageBoxA[] = {'M', 'e', 's', 's', 'a', 'g', 'e', 'B', 'o', 'x', 'A', 0x0 };
-    void (*MessageBoxA)() = (void (*)) GetProcAddress(User32, StringMessageBoxA);
+    // Load User32.dll
+    table->hUser32 = LoadLibraryA(StringUser32Dll);
+    if (!table->hUser32) return -1;
 
-    // Pop message box
-    char StringMessageBoxTitle[] = {'T', 'e', 's', 't', ' ', 'T', 'i', 't', 'l', 'e', 0x0 };
-    char StringMessageBoxBody[] = {'T', 'e', 's', 't', ' ', 'B', 'o', 'd', 'y', 0x0 };
-    MessageBoxA(NULL, StringMessageBoxTitle, StringMessageBoxBody, MB_OK);
+    // Load Kernel32.dll
+    table->hKernel32 = LoadLibraryA(StringKernel32Dll);
+    if (!table->hKernel32) return -1;
+
+    // Load MessageBoxA
+    table->MessageBoxA = (void (*)(HWND, LPCSTR, LPCSTR, UINT))
+        GetProcAddress(table->hUser32, StringMessageBoxA);
+    if (!table->MessageBoxA) return -1;
+
+    // Load WinExec
+    table->WinExec = (void (*)(LPCSTR, UINT))
+        GetProcAddress(table->hKernel32, StringWinExec);
+    if (!table->WinExec) return -1;
+
+    return 0;
+}
+
+
+void __main ();
+void other_function(FunctionTable* table);
+
+void __main () {
+    // Define strings
+    DEFINE_STRING(StringMessageBoxTitle, "Test Title");
+    DEFINE_STRING(StringMessageBoxBody, "Test Body");
+
+    // Initialize function table
+    FunctionTable table;
+    if (InitFunctionTable(&table) != 0) {
+        // Initialization failed
+        return;
+    }
+
+    // Call MessageBoxA
+    if (table.MessageBoxA) {
+        table.MessageBoxA(NULL, StringMessageBoxBody, StringMessageBoxTitle, MB_OK);
+    }
+
+    // Call other_function
+    other_function(&table);
+}
+
+void other_function(FunctionTable* table) {
+    DEFINE_STRING(StringCalc, "calc.exe");
+
+    // Call WinExec
+    if (table->WinExec) {
+        table->WinExec(StringCalc, SW_SHOW);
+    }
 }
